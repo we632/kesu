@@ -75,5 +75,11 @@ from fastapi.responses import FileResponse
 
 BASE_DIR = Path(__file__).resolve().parent
 
+@app.get("/")
+def root():
+    return {"ok": True, "service": "kesu-uploader"}
 
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
 
