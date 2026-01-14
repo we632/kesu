@@ -646,7 +646,7 @@ SWX469530000014809640"></textarea>
     const BETWEEN_DSP_GROUPS = "\n\n------------------------------\n\n";
     const BETWEEN_ITEMS = "\n\n";
     // ✅ 你的独立图片服务地址（本地调试先用这个）
-    const IMG_API_BASE = "http://127.0.0.1:9000";
+    const IMG_API_BASE = "https://kesu.onrender.com";
 // 上线后改成：https://img.yourdomain.com
 
     // =========================
@@ -691,34 +691,108 @@ mo.observe(reasonEl, { childList: true, subtree: true });
 // ✅ ③ 原因框：直接 Ctrl+V 粘贴图片（插入到光标处 + 同步到 pendingImages）
 
 reasonEl.addEventListener('paste', async (e) => {
-  const items = Array.from(e.clipboardData?.items || []);
-  const hasImage = items.some(it => it.kind === "file" && it.type.startsWith("image/"));
+  console.log(
+  "PASTE DEBUG → items:",
+  e.clipboardData?.items?.length,
+  "files:",
+  e.clipboardData?.files?.length,
+  "types:",
+  e.clipboardData?.types
+  );
 
-  // 没有图片：让浏览器默认粘贴（文字/HTML）
-  if (!hasImage) return;
+  const cd = e.clipboardData;
+  if (!cd) return;
 
-  // 有图片：我们接管
-  e.preventDefault();
+  const itemList = Array.from(cd.items || []);
+  const fileList = Array.from(cd.files || []);
 
-  for (const it of items) {
-    // 图片 file
-    if (it.kind === "file" && it.type.startsWith("image/")) {
-      const f = it.getAsFile();
+  // 1) 先从 items 里找图片
+  let imgFiles = itemList
+    .filter(it => it.kind === "file" && (it.type || "").startsWith("image/"))
+    .map(it => it.getAsFile())
+    .filter(Boolean);
+
+  // 2) 如果 items 没拿到，再从 files 里找图片（很多场景图片在这里）
+  if (imgFiles.length === 0) {
+    imgFiles = fileList.filter(f => (f.type || "").startsWith("image/"));
+  }
+
+  // 没图片：走默认粘贴（文字/HTML）
+reasonEl.addEventListener('paste', async (e) => {
+  const cd = e.clipboardData;
+  if (!cd) return;
+
+  const itemList = Array.from(cd.items || []);
+  const fileList = Array.from(cd.files || []);
+
+  // A) 先找 image file（你原来的逻辑）
+  let imgFiles = itemList
+    .filter(it => it.kind === "file" && (it.type || "").startsWith("image/"))
+    .map(it => it.getAsFile())
+    .filter(Boolean);
+
+  if (imgFiles.length === 0) {
+    imgFiles = fileList.filter(f => (f.type || "").startsWith("image/"));
+  }
+
+  // 如果拿到了 file：接管并插入
+  if (imgFiles.length > 0) {
+    e.preventDefault();
+    for (const f of imgFiles) {
       const dataUrl = await fileToDataURL(f);
       pendingImages.push(dataUrl);
       insertImageAtCaret(reasonEl, dataUrl);
     }
+    updateStatusAndButton();
+    return;
+  }
 
-    // 同时保留纯文本（比如“文字+图”一起复制）
-    if (it.kind === "string" && it.type === "text/plain") {
-      it.getAsString(text => {
-        document.execCommand("insertText", false, text);
-      });
+  // B) 拿不到 file：尝试从 text/html 里找 <img>
+  const html = cd.getData("text/html") || "";
+  if (html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const imgs = Array.from(doc.querySelectorAll("img"))
+      .map(img => img.getAttribute("src"))
+      .filter(Boolean);
+
+    // 只要有 img，就接管（否则走默认粘贴）
+    if (imgs.length > 0) {
+      e.preventDefault();
+      for (const src of imgs) {
+        // src 可能是 data:image/... 或 http(s)...
+        pendingImages.push(src);
+        insertImageAtCaret(reasonEl, src);
+      }
+      updateStatusAndButton();
+      return;
     }
+  }
+
+  // C) 仍然没有：走默认粘贴（文字）
+});
+
+
+  // 有图片：我们接管
+  e.preventDefault();
+
+  // ✅ 可选：把纯文本也一起粘进去（比如“文字+图”）
+  const textItem = itemList.find(it => it.kind === "string" && it.type === "text/plain");
+  if (textItem) {
+    textItem.getAsString(text => {
+      document.execCommand("insertText", false, text);
+    });
+  }
+
+  // 插入图片
+  for (const f of imgFiles) {
+    const dataUrl = await fileToDataURL(f);
+    pendingImages.push(dataUrl);
+    insertImageAtCaret(reasonEl, dataUrl);
   }
 
   updateStatusAndButton();
 });
+
 
 
 // 可选：支持拖拽图片到原因框

@@ -70,6 +70,10 @@ async def upload(file: UploadFile = File(...)):
     return {"url": url_path}
 from fastapi.responses import FileResponse
 
-@app.get("/")
-def home():
-    return FileResponse("index.html")
+from pathlib import Path
+from fastapi.responses import FileResponse
+
+BASE_DIR = Path(__file__).resolve().parent
+
+
+
