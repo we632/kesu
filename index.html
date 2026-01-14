@@ -692,12 +692,12 @@ mo.observe(reasonEl, { childList: true, subtree: true });
 
 reasonEl.addEventListener('paste', async (e) => {
   console.log(
-  "PASTE DEBUG → items:",
-  e.clipboardData?.items?.length,
-  "files:",
-  e.clipboardData?.files?.length,
-  "types:",
-  e.clipboardData?.types
+    "PASTE DEBUG → items:",
+    e.clipboardData?.items?.length,
+    "files:",
+    e.clipboardData?.files?.length,
+    "types:",
+    e.clipboardData?.types
   );
 
   const cd = e.clipboardData;
@@ -706,26 +706,7 @@ reasonEl.addEventListener('paste', async (e) => {
   const itemList = Array.from(cd.items || []);
   const fileList = Array.from(cd.files || []);
 
-  // 1) 先从 items 里找图片
-  let imgFiles = itemList
-    .filter(it => it.kind === "file" && (it.type || "").startsWith("image/"))
-    .map(it => it.getAsFile())
-    .filter(Boolean);
-
-  // 2) 如果 items 没拿到，再从 files 里找图片（很多场景图片在这里）
-  if (imgFiles.length === 0) {
-    imgFiles = fileList.filter(f => (f.type || "").startsWith("image/"));
-  }
-
-  // 没图片：走默认粘贴（文字/HTML）
-reasonEl.addEventListener('paste', async (e) => {
-  const cd = e.clipboardData;
-  if (!cd) return;
-
-  const itemList = Array.from(cd.items || []);
-  const fileList = Array.from(cd.files || []);
-
-  // A) 先找 image file（你原来的逻辑）
+  // A) 先找剪贴板里的“图片文件”
   let imgFiles = itemList
     .filter(it => it.kind === "file" && (it.type || "").startsWith("image/"))
     .map(it => it.getAsFile())
@@ -735,19 +716,21 @@ reasonEl.addEventListener('paste', async (e) => {
     imgFiles = fileList.filter(f => (f.type || "").startsWith("image/"));
   }
 
-  // 如果拿到了 file：接管并插入
+  // A1) 如果拿到了 file：接管并插入
   if (imgFiles.length > 0) {
     e.preventDefault();
+
     for (const f of imgFiles) {
       const dataUrl = await fileToDataURL(f);
       pendingImages.push(dataUrl);
       insertImageAtCaret(reasonEl, dataUrl);
     }
+
     updateStatusAndButton();
     return;
   }
 
-  // B) 拿不到 file：尝试从 text/html 里找 <img>
+  // B) 没拿到 file：尝试从 text/html 里找 <img>
   const html = cd.getData("text/html") || "";
   if (html) {
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -755,14 +738,14 @@ reasonEl.addEventListener('paste', async (e) => {
       .map(img => img.getAttribute("src"))
       .filter(Boolean);
 
-    // 只要有 img，就接管（否则走默认粘贴）
     if (imgs.length > 0) {
       e.preventDefault();
+
       for (const src of imgs) {
-        // src 可能是 data:image/... 或 http(s)...
         pendingImages.push(src);
         insertImageAtCaret(reasonEl, src);
       }
+
       updateStatusAndButton();
       return;
     }
@@ -772,26 +755,7 @@ reasonEl.addEventListener('paste', async (e) => {
 });
 
 
-  // 有图片：我们接管
-  e.preventDefault();
 
-  // ✅ 可选：把纯文本也一起粘进去（比如“文字+图”）
-  const textItem = itemList.find(it => it.kind === "string" && it.type === "text/plain");
-  if (textItem) {
-    textItem.getAsString(text => {
-      document.execCommand("insertText", false, text);
-    });
-  }
-
-  // 插入图片
-  for (const f of imgFiles) {
-    const dataUrl = await fileToDataURL(f);
-    pendingImages.push(dataUrl);
-    insertImageAtCaret(reasonEl, dataUrl);
-  }
-
-  updateStatusAndButton();
-});
 
 
 
