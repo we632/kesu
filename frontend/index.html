@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>客诉单模板生成器</title>
+  <style>
+    :root{
+      --bg: #0b1220;
+      --bg2:#0f1a2f;
+      --card: rgba(255,255,255,.08);
+      --card2: rgba(255,255,255,.06);
+      --border: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --muted2: rgba(255,255,255,.50);
+      --shadow: 0 18px 55px rgba(0,0,0,.35);
+      --shadow2: 0 10px 28px rgba(0,0,0,.25);
+      --radius: 16px;
+      --radius2: 12px;
+      --gap: 14px;
+      --focus: rgba(255,255,255,.22);
+      --btn: rgba(255,255,255,.10);
+      --btnHover: rgba(255,255,255,.16);
+      --danger: rgba(255, 90, 90, .18);
+      --ok: rgba(60, 220, 140, .18);
+    }
+
+    /* light mode fallback (if you ever want): just comment this block out */
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f7fb;
+        --bg2:#f0f3fb;
+        --card: rgba(255,255,255,.92);
+        --card2: rgba(255,255,255,.82);
+        --border: rgba(20,20,30,.10);
+        --text: rgba(20,20,30,.92);
+        --muted: rgba(20,20,30,.68);
+        --muted2: rgba(20,20,30,.55);
+        --shadow: 0 18px 55px rgba(25, 40, 90, .12);
+        --shadow2: 0 10px 28px rgba(25, 40, 90, .10);
+        --focus: rgba(10,10,20,.10);
+        --btn: rgba(10,10,20,.06);
+        --btnHover: rgba(10,10,20,.10);
+        --danger: rgba(255, 90, 90, .12);
+        --ok: rgba(60, 220, 140, .12);
+      }
+    }
+
+    *{ box-sizing: border-box; }
+    body{
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, "PingFang SC","Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(1200px 700px at 12% 10%, rgba(122, 162, 255, .28), transparent 55%),
+        radial-gradient(900px 520px at 86% 16%, rgba(255, 122, 218, .18), transparent 55%),
+        radial-gradient(900px 520px at 72% 88%, rgba(60, 220, 140, .14), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 22px 18px 34px;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    h1{
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+    .subtitle{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .statusPills{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .pill{
+      display:inline-flex;
+      gap: 8px;
+      align-items:center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card2);
+      color: var(--muted);
+      font-size: 12px;
+      box-shadow: var(--shadow2);
+      white-space: nowrap;
+    }
+    .dot{
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,.40);
+    }
+    .dot.ok{ background: rgba(60,220,140,.9); }
+    .dot.bad{ background: rgba(255,90,90,.9); }
+
+    .grid{
+      display:grid;
+      gap: var(--gap);
+    }
+
+    .cards{
+      display:grid;
+      gap: var(--gap);
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 980px){
+      .cards{
+        grid-template-columns: 1.2fr .8fr;
+      }
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .card h2{
+      margin: 0 0 10px;
+      font-size: 14px;
+      color: var(--text);
+      letter-spacing: .2px;
+    }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 10px 0 6px;
+    }
+
+    input, textarea, select, button{
+      font: inherit;
+      color: var(--text);
+    }
+
+    input, textarea, select{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius2);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    input:focus, textarea:focus, select:focus{
+      border-color: rgba(255,255,255,.28);
+      box-shadow: 0 0 0 4px var(--focus);
+      background: rgba(255,255,255,.08);
+    }
+
+    textarea{ min-height: 120px; resize: vertical; }
+    .hint{
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted2);
+      line-height: 1.35;
+    }
+.reasonEditor{
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;          /* 只是视觉上保留；div 实际不能拖拽 resize */
+  padding: 10px 12px;
+  border-radius: var(--radius2);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.06);
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.reasonEditor:focus{
+  border-color: rgba(255,255,255,.28);
+  box-shadow: 0 0 0 4px var(--focus);
+  background: rgba(255,255,255,.08);
+}
+.reasonEditor:empty:before{
+  content: attr(data-placeholder);
+  color: var(--muted2);
+}
+.reasonEditor img{
+  max-width: 320px;
+  display: inline-block;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+    .row2{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+    }
+    @media (min-width: 980px){
+      .row2{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    button{
+      border: 1px solid var(--border);
+      background: var(--btn);
+      padding: 10px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+    }
+    button:hover{ background: var(--btnHover); }
+    button:active{ transform: translateY(1px); }
+    button:disabled{ opacity: .45; cursor: not-allowed; transform: none; }
+
+    .primary{
+      background: linear-gradient(135deg, rgba(122, 162, 255, .35), rgba(255, 122, 218, .22));
+      border-color: rgba(255,255,255,.22);
+    }
+    .primary:hover{ background: linear-gradient(135deg, rgba(122, 162, 255, .45), rgba(255, 122, 218, .28)); }
+
+    .danger{
+      background: var(--danger);
+    }
+
+    .chipbar{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .chip{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s ease;
+    }
+    .chip:hover{ background: rgba(255,255,255,.10); }
+
+    pre{
+      margin: 0;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.20);
+      padding: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 240px;
+      box-shadow: var(--shadow2);
+      color: rgba(255,255,255,.90);
+    }
+    @media (prefers-color-scheme: light){
+      pre{ background: rgba(10,10,20,.04); color: rgba(20,20,30,.92); }
+    }
+
+    /* DSP dropdown */
+    .dspBox{ position: relative; }
+    .dspList{
+  position: fixed;            /* ✅ 从 absolute 改成 fixed */
+  left: 0;
+  top: 0;
+  width: 360px;               /* JS 会覆盖成真实宽度 */
+  max-height: 240px;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(20, 24, 40, .92);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  display: none;
+  z-index: 99999;             /* ✅ 提到非常高 */
+}
+
+    @media (prefers-color-scheme: light){
+      .dspList{ background: rgba(255,255,255,.96); }
+    }
+    .dspItem{
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: var(--text);
+    }
+    .dspItem:last-child{ border-bottom: none; }
+    .dspItem:hover{ background: rgba(255,255,255,.08); }
+    .dspItem.active{ background: rgba(122, 162, 255, .20); }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.86);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .16s ease, transform .16s ease;
+      box-shadow: var(--shadow2);
+    }
+    .toast.show{ opacity: 1; transform: translateX(-50%) translateY(-2px); }
+
+    .splitHeader{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .mini{
+      font-size: 12px;
+      color: var(--muted);
+    }
+  .imgThumb{
+  width: 120px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: rgba(0,0,0,.18);
+  position: relative;
+}
+.imgThumb img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+}
+.imgThumb .x{
+  position:absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0,0,0,.55);
+  border: 1px solid rgba(255,255,255,.18);
+  color: #fff;
+  border-radius: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.outputHtml{
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,.20);
+  padding: 14px;
+  min-height: 240px;
+  box-shadow: var(--shadow2);
+}
+@media (prefers-color-scheme: light){
+  .outputHtml{ background: rgba(10,10,20,.04); }
+}
+.outBlock{
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+/* ✅ 每个 DSP 输出块变成更像“卡片” */
+.outBlock{
+  position: relative;
+  margin-bottom: 0;                /* 交给分隔条控制 */
+  padding: 14px 14px 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.05);
+  box-shadow: 0 10px 26px rgba(0,0,0,.18);
+}
+
+/* ✅ 标题区域更紧凑一点 */
+.outHead{
+  white-space: normal;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(255,255,255,.16);
+}
+
+/* ✅ 单号块更“块状”一点（可选） */
+.outItem{
+  margin-bottom: 10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.10);
+  border: 1px solid rgba(255,255,255,.10);
+}
+.outItem:last-child{ margin-bottom: 0; }
+
+/* ✅ 关键：DSP 与 DSP 之间的“曲线分隔” */
+.curveDivider{
+  height: 22px;
+  margin: 14px 0;
+  position: relative;
+  overflow: hidden;
+}
+.curveDivider::before{
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,.10);
+}
+.curveDivider::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220px;
+  height: 220px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.16);
+  /* 只露出圆的一小段，就会像弧线 */
+  clip-path: inset(0 0 60% 0);
+  opacity: .9;
+}
+
+/* light mode 兼容（可选） */
+@media (prefers-color-scheme: light){
+  .outBlock{
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(20,20,30,.10);
+    box-shadow: 0 10px 26px rgba(25, 40, 90, .10);
+  }
+  .outItem{
+    background: rgba(10,10,20,.03);
+    border: 1px solid rgba(20,20,30,.08);
+  }
+  .curveDivider::before{ background: rgba(20,20,30,.10); }
+  .curveDivider::after{ border-color: rgba(20,20,30,.14); }
+}
+
+.outBlock:last-child{ border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.outHead{
+  white-space: normal;
+  color: rgba(255,255,255,.92);
+  margin-bottom: 10px;
+}
+.outItem{
+  margin-bottom: 18px;
+}
+.outTracking{
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.outReason{
+  white-space: pre-wrap;
+  color: rgba(255,255,255,.90);
+}
+.outImgs{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.outImgs img{
+  width: 220px;
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.sepLine{
+  margin: 16px 0;
+  border-top: 1px solid rgba(255,255,255,.14);
+}
+@media (prefers-color-scheme: light){
+  .outputHtml{
+    background: #fff;
+  }
+  .outHead,
+  .outTracking,
+  .outReason{
+    color: rgba(0,0,0,.88) !important;
+  }
+  .sepLine{
+    border-top: 1px solid rgba(0,0,0,.12);
+  }
+}
+.dspDivider{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 30px 0;
+  color: rgba(0,0,0,.45);
+  font-size: 12px;
+}
+.dspDivider::before,
+.dspDivider::after{
+  content: "";
+  flex: 1;
+  border-top: 2px dashed rgba(0,0,0,.35);
+}
+
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>客诉单模板生成器</h1>
+        <div class="subtitle">必须选择 DSP + 必须填写原因；同单号再次加入会覆盖旧原因（并更新 DSP）</div>
+      </div>
+
+      <div class="statusPills">
+        <div class="pill" id="pillDSP"><span class="dot bad" id="dotDSP"></span><span>DSP：<b id="dspChosen">未选择</b></span></div>
+        <div class="pill" id="pillReason"><span class="dot bad" id="dotReason"></span><span>原因：<b id="reasonChosen">未填写</b></span></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="cards">
+        <!-- 左：单号 -->
+        <div class="card">
+          <div class="splitHeader">
+            <h2>① 单号（支持多条）</h2>
+            <div class="mini">每行一个单号</div>
+          </div>
+          <textarea id="trackingBatch" placeholder="SWX383650000014870974
+SWX469530000014809640"></textarea>
+
+          <div class="hint">会自动去重、去空格、忽略空行。</div>
+        </div>
+
+        <!-- 右：DSP + 原因下拉 -->
+        <div class="card">
+          <h2>② DSP + 常见原因</h2>
+
+          <label>DSP（下拉可搜索，必须从列表点击选择）</label>
+          <div class="dspBox">
+            <input id="dspSearch" placeholder="搜索 DSP，例如：EWR-PHL" autocomplete="off" />
+            <div class="dspList" id="dspList"></div>
+          </div>
+          <div class="hint">输入只用于筛选；只有点击列表项才算选择成功。</div>
+
+          <label for="reasonPreset">常见原因（选择后会同步到下方“手动原因”）</label>
+          <select id="reasonPreset">
+            <option value="">— 选择一个常见原因 —</option>
+            <option value="地址是正确的，麻烦安排司机重新定位派送，请司机先返仓包裹">地址正确：重派+先返仓</option>
+            <option value="断更，请寻找包裹">断更</option>
+            <option value="送错地址，请让司机加急收回包裹，送到客户正确地址">送错地址</option>
+            <option value="客户进线更改地址，请按照app的新地址进行派送">更改地址</option>
+            <option value="客户反馈顾客收到包裹有破损和丢件，客户要求赔付，麻烦核实下回复">破损/少件</option>
+          </select>
+          <div class="hint">你也可以直接在下方手动编辑原因（手动内容会作为最终原因）。</div>
+        </div>
+      </div>
+
+<div class="card">
+  <div class="splitHeader">
+    <h2>③ 原因 / 处理指令（最终写入模板）</h2>
+    <div class="mini">手动输入优先</div>
+  </div>
+
+        <!-- OCR 区块 -->
+        <div class="ocrBlock">
+          <label for="ocrFile">截图识别（自动提取 SWX 单号 + 原因）</label>
+          <input type="file" id="ocrFile" accept="image/*" />
+          <div class="hint">
+            上传截图后会自动识别：SWX开头的订单号填到①单号框；其余文字填到③原因框。
+          </div>
+          <div id="ocrStatus" class="hint"></div>
+        </div>
+
+        <!-- 原因编辑区 -->
+        <div id="reason"
+            class="reasonEditor"
+            contenteditable="true"
+            data-placeholder="例如：地址是正确的，麻烦安排司机重新定位派送，请司机先返仓包裹">
+        </div>
+
+        <!-- 原有图片上传逻辑 -->
+        <input type="file" id="imgFile" accept="image/*" multiple style="display:none;">
+        <div class="imgPreview" id="imgPreview"></div>
+      </div>
+
+
+
+        <div class="hint">提示：如果你从“常见原因”选择，会自动同步到这里；你仍然可以继续修改。</div>
+
+        <div class="chipbar" id="chips"></div>
+      </div>
+
+      <!-- 操作 + 统计 -->
+      <div class="row2">
+        <div class="card">
+          <h2>④ 操作</h2>
+          <div class="actions">
+            <button class="primary" id="btnAdd">加入/覆盖</button>
+            <button class="danger" id="btnDelete">删除单号</button>
+            <button id="btnCopy" disabled>复制全部</button>
+            <button id="btnDownload" disabled>下载 TXT</button>
+            <button id="btnClearInputs">清空输入框</button>
+            <button class="danger" id="btnClearOutput">清空输出区</button>
+          </div>
+          <div class="hint">
+            规则：必须选 DSP + 必须有原因 + 至少 1 个单号，才允许加入/覆盖。<br>
+            输出：每个 DSP 分组会带一次“特别注意...”标题。
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>⑤ 统计</h2>
+          <pre id="stats">—</pre>
+        </div>
+      </div>
+
+      <!-- 输出 -->
+      <div class="card">
+        <div class="splitHeader">
+          <h2>⑥ 输出内容</h2>
+          <div class="mini">可直接复制 / 导出 TXT</div>
+        </div>
+        <div id="output" class="outputHtml"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">已复制</div>
+
+  <script>
+    // =========================
+    // 固定模板 & 分隔符
+    // =========================
+    const TEMPLATE_HEAD =
+`特别注意！！！客诉单！！！请尽快跟进处理！！！（24小时内给出回复，第二天同一时间结单）`;
+    const BETWEEN_DSP_GROUPS = "\n\n------------------------------\n\n";
+    const BETWEEN_ITEMS = "\n\n";
+
+    // =========================
+    // DSP 列表（在这里改）
+    // =========================
+    const DSP_OPTIONS = [
+      "EWR-PHL-CJS",
+      "EWR-PHL-GREYZ",
+      "EWR-PHL-POR",   // 原 Panda 改名
+      "EWR-PHL-GJ",    // 新增
+      "EWR-PHL-JT Track",
+      "EWR-PHL-Peak",
+    ];
+
+
+    // ✅ 用于 chips（你之前文件缺这个会报错）
+    const COMMON_REASONS = [
+      "地址是正确的，麻烦安排司机重新定位派送，请司机先返仓包裹",
+      "断更，请寻找包裹",
+      "送错地址，请让司机加急收回包裹，送到客户正确地址",
+      "客户进线更改地址，请按照app的新地址进行派送",
+      "客户反馈顾客收到包裹有破损和丢件，客户要求赔付，麻烦核实下回复"
+    ];
+
+    // =========================
+    // DOM
+
+// 当前“原因”附带的图片（加入/覆盖时会写入每条单号）
+let pendingImages = []; // array of dataURL strings
+
+    // =========================
+    const btnDelete = document.getElementById('btnDelete');
+    const trackingBatchEl = document.getElementById('trackingBatch');
+    const reasonEl = document.getElementById('reason');
+    const ocrFileEl = document.getElementById('ocrFile');
+    const ocrStatusEl = document.getElementById('ocrStatus');
+
+function syncPendingImagesFromEditor(){
+  pendingImages = Array.from(reasonEl.querySelectorAll('img')).map(img => img.src);
+}
+
+// 监听原因框 DOM 变化（删除图片/换行/粘贴都会触发）
+const mo = new MutationObserver(() => {
+  syncPendingImagesFromEditor();
+});
+mo.observe(reasonEl, { childList: true, subtree: true });
+
+// ✅ ③ 原因框：直接 Ctrl+V 粘贴图片（插入到光标处 + 同步到 pendingImages）
+
+reasonEl.addEventListener('paste', async (e) => {
+  const items = Array.from(e.clipboardData?.items || []);
+  const hasImage = items.some(it => it.kind === "file" && it.type.startsWith("image/"));
+
+  // 没有图片：让浏览器默认粘贴（文字/HTML）
+  if (!hasImage) return;
+
+  // 有图片：我们接管
+  e.preventDefault();
+
+  for (const it of items) {
+    // 图片 file
+    if (it.kind === "file" && it.type.startsWith("image/")) {
+      const f = it.getAsFile();
+      const dataUrl = await fileToDataURL(f);
+      pendingImages.push(dataUrl);
+      insertImageAtCaret(reasonEl, dataUrl);
+    }
+
+    // 同时保留纯文本（比如“文字+图”一起复制）
+    if (it.kind === "string" && it.type === "text/plain") {
+      it.getAsString(text => {
+        document.execCommand("insertText", false, text);
+      });
+    }
+  }
+
+  updateStatusAndButton();
+});
+
+
+// 可选：支持拖拽图片到原因框
+reasonEl.addEventListener('dragover', (e) => e.preventDefault());
+reasonEl.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  const files = Array.from(e.dataTransfer?.files || [])
+    .filter(f => f && f.type && f.type.startsWith("image/"));
+
+  for (const f of files) {
+    const dataUrl = await fileToDataURL(f);
+    pendingImages.push(dataUrl);
+    insertImageAtCaret(reasonEl, dataUrl);
+  }
+
+  updateStatusAndButton();
+});
+
+
+
+function insertImageAtCaret(editableEl, src) {
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = 'img';
+
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) {
+    editableEl.appendChild(img);
+    return;
+  }
+
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(img);
+
+  // 光标移到图片后面
+  range.setStartAfter(img);
+  range.setEndAfter(img);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+    const presetEl = document.getElementById('reasonPreset');
+    const outputEl = document.getElementById('output');
+    const statsEl = document.getElementById('stats');
+
+    const btnAdd = document.getElementById('btnAdd');
+    const btnCopy = document.getElementById('btnCopy');
+    const btnDownload = document.getElementById('btnDownload');
+    const btnClearInputs = document.getElementById('btnClearInputs');
+    const btnClearOutput = document.getElementById('btnClearOutput');
+
+    const toastEl = document.getElementById('toast');
+    const chipsEl = document.getElementById('chips');
+
+    const dspSearchEl = document.getElementById('dspSearch');
+    const dspListEl = document.getElementById('dspList');
+    document.body.appendChild(dspListEl);
+    const dspChosenEl = document.getElementById('dspChosen');
+
+    // 顶部状态显示
+    const dotDSP = document.getElementById('dotDSP');
+    const dotReason = document.getElementById('dotReason');
+    const reasonChosenEl = document.getElementById('reasonChosen');
+
+    // 只有“从下拉点击选中”才会写入 chosenDSP
+    let chosenDSP = "";
+
+    // 覆盖模式：tracking -> { dsp, reason }
+    const ticketStore = new Map();
+    const dspOrder = []; // 保持 DSP 出现顺序
+
+    // =========================
+    // 工具
+
+
+
+
+ocrFileEl.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  ocrStatusEl.textContent = "识别中…";
+
+  try {
+    const { orders, reason } = await postImageToBackend(file);
+    trackingBatchEl.value = (orders || []).join("\n");
+    reasonEl.textContent = reason || "";
+    pendingImages = [];
+    ocrStatusEl.textContent = `识别完成：${(orders || []).length} 个单号`;
+    updateStatusAndButton();
+  } catch (err) {
+    // 这行也建议改成显示具体原因
+    ocrStatusEl.textContent = "识别失败：" + (err?.message || String(err));
+  }
+
+  ocrFileEl.value = "";
+});
+
+
+function escapeHTML(s){
+  return (s ?? "").replace(/[&<>"']/g, c => (
+    c === '&' ? '&amp;' :
+    c === '<' ? '&lt;' :
+    c === '>' ? '&gt;' :
+    c === '"' ? '&quot;' : '&#39;'
+  ));
+}
+
+function fileToDataURL(file){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+
+
+
+
+    // =========================
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 900);
+    }
+
+    function normalizeTrackingLines(text) {
+      const lines = (text || "")
+        .split(/\r?\n/)
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      // 去重（保持顺序）
+      const seen = new Set();
+      const out = [];
+      for (const x of lines) {
+        if (!seen.has(x)) { seen.add(x); out.push(x); }
+      }
+      return out;
+    }
+
+    function setOutputButtonsEnabled() {
+      const ok = !!(outputEl.textContent && outputEl.textContent.trim());
+      btnCopy.disabled = !ok;
+      btnDownload.disabled = !ok;
+    }
+
+    function renderChips() {
+      chipsEl.innerHTML = "";
+      COMMON_REASONS.forEach((txt) => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = txt.length > 16 ? (txt.slice(0, 16) + "…") : txt;
+        chip.title = txt;
+        chip.addEventListener('click', () => {
+          reasonEl.textContent = txt;
+pendingImages = [];   // 可选：点 chip 时清掉之前贴的图
+          updateStatusAndButton();
+        });
+        chipsEl.appendChild(chip);
+      });
+    }
+
+    // =========================
+    // DSP 下拉（可搜索）
+    // =========================
+
+
+    function openDSPList() { dspListEl.style.display = "block"; }
+    function closeDSPList() { dspListEl.style.display = "none"; }
+function positionDSPList() {
+  const r = dspSearchEl.getBoundingClientRect();
+  dspListEl.style.left = r.left + "px";
+  dspListEl.style.top = (r.bottom + 8) + "px";
+  dspListEl.style.width = r.width + "px";
+}
+
+    function renderDSPList(filter = "") {
+      const f = (filter || "").trim().toLowerCase();
+      const items = DSP_OPTIONS.filter(x => x.toLowerCase().includes(f));
+
+      dspListEl.innerHTML = "";
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'dspItem';
+        empty.textContent = "无匹配结果";
+        empty.style.color = "rgba(255,255,255,.65)";
+        empty.style.cursor = "default";
+        dspListEl.appendChild(empty);
+        return;
+      }
+
+      items.forEach(x => {
+        const div = document.createElement('div');
+        div.className = 'dspItem' + (x === chosenDSP ? ' active' : '');
+        div.textContent = x;
+
+        div.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          chosenDSP = x;
+          dspChosenEl.textContent = x;
+          dspSearchEl.value = x;
+          closeDSPList();
+          updateStatusAndButton();
+        });
+
+        dspListEl.appendChild(div);
+      });
+    }
+
+    dspSearchEl.addEventListener('focus', () => {
+  renderDSPList(dspSearchEl.value);
+  positionDSPList();   // ✅ 新增
+  openDSPList();
+});
+   dspSearchEl.addEventListener('input', () => {
+  renderDSPList(dspSearchEl.value);
+  positionDSPList();   // ✅ 新增
+  openDSPList();
+});
+
+
+
+
+
+    dspSearchEl.addEventListener('keydown', (e) => {
+      if (e.key === "Escape") closeDSPList();
+    });
+
+    document.addEventListener('click', (e) => {
+  if (!e.target.closest('.dspBox') && !e.target.closest('#dspList')) {
+    closeDSPList();
+  }
+});
+window.addEventListener('scroll', () => {
+  if (dspListEl.style.display === "block") positionDSPList();
+}, true);
+
+window.addEventListener('resize', () => {
+  if (dspListEl.style.display === "block") positionDSPList();
+});
+
+    // =========================
+    // 输出渲染：每个 DSP 分组都带标题
+    // =========================
+    function renderOutput() {
+  if (ticketStore.size === 0) {
+    outputEl.innerHTML = "";
+    setOutputButtonsEnabled();
+    return;
+  }
+
+  // 先按 DSP 分组
+  const groups = new Map();
+  for (const [tracking, info] of ticketStore.entries()) {
+    const dsp = info.dsp;
+    if (!groups.has(dsp)) groups.set(dsp, []);
+    groups.get(dsp).push({
+      tracking,
+      reason: info.reason,
+      images: info.images || []
+    });
+  }
+
+  const htmlBlocks = [];
+  let firstDSP = true;
+
+  for (const dsp of dspOrder) {
+    if (!groups.has(dsp)) continue;
+
+    const items = groups.get(dsp);
+
+    const itemsHtml = items.map((x) => {
+      const imgsHtml = x.images.length
+        ? `<div class="outImgs">${x.images.map(src => `<img src="${src}" alt="img">`).join("")}</div>`
+        : "";
+
+      return `
+        <div class="outItem">
+          <div class="outTracking">${escapeHTML(x.tracking)}</div>
+          <div class="outReason">${escapeHTML(x.reason || "")}</div>
+          ${imgsHtml}
+        </div>
+      `;
+    }).join(`<br>`);
+
+   // ✅ DSP 块之间插入曲线分隔条
+if (!firstDSP) htmlBlocks.push(`<div class="curveDivider"></div>`);
+firstDSP = false;
+
+htmlBlocks.push(`
+  <div class="outBlock">
+    <div class="outHead">${escapeHTML(TEMPLATE_HEAD)}<br>DSP：${escapeHTML(dsp)}</div>
+    ${itemsHtml}
+  </div>
+`);
+
+
+  }
+
+  outputEl.innerHTML = htmlBlocks.join("");
+  setOutputButtonsEnabled();
+}
+
+
+    // =========================
+    // 必填校验：按钮禁用 + 顶部状态灯
+    // =========================
+    function getFinalReason() {
+      const manual = (reasonEl.innerText || "").trim();
+      const preset = (presetEl.value || "").trim();
+      return manual || preset;
+    }
+
+    function updateStatusAndButton() {
+      const ids = normalizeTrackingLines(trackingBatchEl.value);
+      const dspOk = !!(chosenDSP && chosenDSP.trim());
+      const reason = getFinalReason();
+      const reasonOk = !!reason;
+
+      dotDSP.className = 'dot ' + (dspOk ? 'ok' : 'bad');
+      dotReason.className = 'dot ' + (reasonOk ? 'ok' : 'bad');
+
+      reasonChosenEl.textContent = reasonOk ? '已填写' : '未填写';
+      dspChosenEl.textContent = dspOk ? chosenDSP : '未选择';
+
+      // 必须：单号 + DSP + 原因
+      btnAdd.disabled = !(ids.length > 0 && dspOk && reasonOk);
+    }
+
+    // =========================
+    // 加入/覆盖逻辑
+    // =========================
+    function addOrOverwrite() {
+      const ids = normalizeTrackingLines(trackingBatchEl.value);
+
+      const dsp = (chosenDSP || "").trim();
+      const reason = getFinalReason();
+syncPendingImagesFromEditor();
+
+
+      if (ids.length === 0) { statsEl.textContent = "提示：请至少输入 1 个单号。"; return; }
+      if (!dsp) { statsEl.textContent = "提示：必须选择 DSP（请从下拉列表点击选择）。"; return; }
+      if (!reason) { statsEl.textContent = "提示：必须填写原因（选择常见原因 或 手动输入原因）。"; return; }
+
+      if (!dspOrder.includes(dsp)) dspOrder.push(dsp);
+
+      let added = 0;
+      let overwritten = 0;
+
+      for (const id of ids) {
+        if (ticketStore.has(id)) {
+          ticketStore.set(id, { dsp, reason, images: pendingImages.slice() });
+          overwritten++;
+        } else {
+          ticketStore.set(id, { dsp, reason, images: pendingImages.slice() });
+          added++;
+        }
+      }
+
+      renderOutput();
+
+// ✅ 加入后：清空单号输入框
+trackingBatchEl.value = "";
+
+// ✅ 加入后：DSP 必须重选（清空已选 DSP）
+chosenDSP = "";
+dspSearchEl.value = "";
+dspChosenEl.textContent = "未选择";
+closeDSPList();
+renderDSPList("");
+
+// ✅ 原因不清空（保留用户当前原因 + 图片）
+// presetEl / reasonEl / pendingImages 都不要动
+
+updateStatusAndButton();
+
+
+      statsEl.textContent =
+        `本次处理：${ids.length} 条\n` +
+        `新增：${added} 条\n` +
+        `覆盖更新：${overwritten} 条\n` +
+        `当前 DSP：${dsp}\n` +
+        `累计单号：${ticketStore.size}`;
+    }
+
+    // =========================
+    // 事件
+
+
+    // =========================
+    function deleteTickets() {
+  const ids = normalizeTrackingLines(trackingBatchEl.value);
+  if (ids.length === 0) {
+    statsEl.textContent = "提示：请在“单号”里输入要删除的单号（每行一个）。";
+    return;
+  }
+
+  let removed = 0;
+  for (const id of ids) {
+    if (ticketStore.delete(id)) removed++;
+  }
+
+  // ✅ 如果全删空了，也顺手把顺序清掉
+  if (ticketStore.size === 0) dspOrder.length = 0;
+
+  renderOutput();
+  setOutputButtonsEnabled();
+  updateStatusAndButton();
+
+  statsEl.textContent =
+    `删除请求：${ids.length} 条\n` +
+    `实际删除：${removed} 条\n` +
+    `剩余单号：${ticketStore.size}`;
+}
+
+btnDelete.addEventListener('click', () => {
+  deleteTickets();
+});
+
+    presetEl.addEventListener('change', () => {
+      // ✅ 你要的：下拉选择原因 → 手动框直接同步（覆盖原内容）
+      if (presetEl.value) {
+        reasonEl.textContent = presetEl.value || "";
+pendingImages = []; // 选择常见原因时，默认清空已贴图片
+      } else {
+        reasonEl.innerHTML = "";
+pendingImages = [];
+      }
+      updateStatusAndButton();
+    });
+
+    trackingBatchEl.addEventListener('input', updateStatusAndButton);
+    reasonEl.addEventListener('input', updateStatusAndButton);
+// ✅ 在“原因框”里直接 Ctrl+V 粘贴图片
+
+
+
+    btnAdd.addEventListener('click', () => {
+      addOrOverwrite();
+      updateStatusAndButton();
+    });
+
+    async function dataURLToImage(src){
+  // 兼容 data: 和普通 url（后面你如果换成 https 也能用）
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = src;
+  await new Promise((res, rej) => {
+    img.onload = res;
+    img.onerror = rej;
+  });
+  return img;
+}
+
+async function mergeImagesToPNGBlob(srcList){
+  // 把所有图片竖着拼成一张长图（Lark 100%能显示）
+  const imgs = [];
+  for (const s of srcList) imgs.push(await dataURLToImage(s));
+
+  const gap = 12; // 图片之间留一点空隙
+  const width = Math.max(...imgs.map(i => i.naturalWidth));
+  const height = imgs.reduce((sum, i) => sum + i.naturalHeight, 0) + gap * (imgs.length - 1);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  let y = 0;
+  for (let k = 0; k < imgs.length; k++){
+    const im = imgs[k];
+    // 左对齐绘制；你也可以改成居中
+    ctx.drawImage(im, 0, y);
+    y += im.naturalHeight + gap;
+  }
+
+  return await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+btnCopy.addEventListener('click', async () => {
+  const plain = (outputEl.innerText || "").trim();
+  const html = `<div>${outputEl.innerHTML}</div>`.trim();
+
+  // 取出输出区里的所有图片（也就是你要粘贴到 Lark 的图）
+  const imgSrcs = Array.from(outputEl.querySelectorAll("img"))
+    .map(img => img.src)
+    .filter(Boolean);
+
+  try {
+    // ✅ 如果有图片：额外写入 image/png（Lark 会显示图片，不会再变成 “img”）
+    if (imgSrcs.length > 0) {
+      const pngBlob = await mergeImagesToPNGBlob(imgSrcs);
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "image/png": pngBlob,
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+        })
+      ]);
+
+      toast("已复制（Lark 适配：图片会显示）");
+      return;
+    }
+
+    // ✅ 没图片：维持原逻辑
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        "text/html": new Blob([html], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" }),
+      })
+    ]);
+    toast("已复制");
+  } catch (e) {
+    // 兜底
+    try {
+      await navigator.clipboard.writeText(plain);
+      toast("已复制（纯文本兼容模式）");
+    } catch {
+      toast("复制失败：请用 Chrome 并允许剪贴板权限");
+    }
+  }
+});
+
+
+
+    btnDownload.addEventListener('click', () => {
+      const text = outputEl.textContent;
+      if (!text) return;
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "客诉单_输出.txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast("已下载 TXT");
+    });
+
+    btnClearInputs.addEventListener('click', () => {
+      trackingBatchEl.value = "";
+      reasonEl.innerHTML = "";
+pendingImages = [];
+      presetEl.value = "";
+      trackingBatchEl.focus();
+      statsEl.textContent = "—";
+      updateStatusAndButton();
+    });
+
+    btnClearOutput.addEventListener('click', () => {
+      ticketStore.clear();
+      dspOrder.length = 0;
+      outputEl.innerHTML = "";
+      statsEl.textContent = "—";
+      setOutputButtonsEnabled();
+      toast("已清空输出区");
+      updateStatusAndButton();
+    });
+
+    // 初始化
+    renderChips();
+    renderDSPList("");
+    setOutputButtonsEnabled();
+    updateStatusAndButton();
+
+// =========================
+// AI 上传 -> 后端识别
+// =========================
+async function postImageToBackend(file) {
+  const fd = new FormData();
+  fd.append("file", file);
+
+  // 如果你前后端同域部署：直接 /api/ocr
+  // 如果后端是独立域名：改成 https://xxx.onrender.com/api/ocr
+  const res = await fetch("/api/ocr", {
+    method: "POST",
+    body: fd,
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "OCR failed");
+  }
+  return data; // { ok:true, orders:[...], reason:"..." }
+}
+
+
+  </script>
+</body>
+</html>
