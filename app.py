@@ -21,10 +21,12 @@ print("FRONTEND_DIR =", FRONTEND_DIR)
 print("EXISTS =", FRONTEND_DIR.exists())
 
 
-# Gemini API key：推荐在环境变量里设置 GEMINI_API_KEY
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
+# Groq API key：推荐在环境变量里设置 GROQ_API_KEY
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+# 可通过环境变量覆盖模型，避免模型下线导致服务不可用
+GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
 
-app = FastAPI(title="Complaint Template OCR API (Gemini)")
+app = FastAPI(title="Complaint Template OCR API (Groq)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -91,58 +93,73 @@ def _compress_to_jpeg(image_bytes: bytes, max_side: int = 1280, quality: int = 7
         return image_bytes
 
 
-async def _extract_with_gemini(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
-    """用 Gemini Vision 提取 orders + reason，返回 dict。"""
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY not set")
+async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
+    """用 Groq Vision 提取 orders + reason，返回 dict。"""
+    if not GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY not set")
 
-    # 官方 Python SDK：google-genai
-    from google import genai
-    from google.genai import types
+    import base64
+    import json
+    from groq import Groq
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = Groq(api_key=GROQ_API_KEY)
 
-    system_hint = (
-        "You are a strict information extractor. "
-        "Return ONLY valid JSON. No markdown, no extra text."
-    )
-    user_prompt = (
+    prompt = (
         "请从这张截图中提取并只输出 JSON（不要解释、不要 markdown）。\n\n"
         "输出格式：\n"
         '{ "orders": ["SWX..."], "text": "内部备注的完整文字（包含门禁密码/48小时等），去掉所有SWX订单号，按原顺序输出" }\n\n'
         "规则：\n"
         "1) orders：提取所有以 SWX 开头的订单号（可能有空格），输出时去掉空格。\n"
-        "2) text：只保留“内部备注”后面的内容；把所有 SWX 订单号从 text 里移除；其余文字尽量原样保留。\n"
+        "2) text：只保留‘内部备注’后面的内容；把所有 SWX 订单号从 text 里移除；其余文字尽量原样保留。\n"
         "3) 只输出 JSON。\n"
     )
 
+    b64 = base64.b64encode(image_bytes).decode("utf-8")
+    data_url = f"data:{mime_type};base64,{b64}"
 
-    image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+    fallback_models = [
+        GROQ_VISION_MODEL,
+        "meta-llama/llama-4-maverick-17b-128e-instruct",
+    ]
 
-    # 小贴士：单图+文本时，把“图”放前面，“提示词”放后面更稳（官方也这么建议）
-    resp = client.models.generate_content(
-        model="gemini-3-flash-preview",
-        contents=[image_part, f"{system_hint}\n\n{user_prompt}"],
-    )
+    last_error = None
+    text_out = ""
+    for model_name in _dedupe_keep_order(fallback_models):
+        try:
+            resp = client.chat.completions.create(
+                model=model_name,
+                temperature=0,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": data_url}},
+                        ],
+                    }
+                ],
+            )
+            text_out = (resp.choices[0].message.content or "").strip()
+            if text_out:
+                break
+        except Exception as e:
+            last_error = e
 
-    text_out = (resp.text or "").strip()
+    if not text_out:
+        if last_error:
+            raise RuntimeError(f"Groq request failed: {last_error}") from last_error
+        raise RuntimeError("Groq request failed: empty response")
 
-    # 解析 JSON（只取第一个 {...}）
-    import json
     m = re.search(r"\{.*\}", text_out, re.S)
     if not m:
         raise RuntimeError(f"Model did not return JSON: {text_out[:200]}")
 
     data = json.loads(m.group(0))
+    text = _normalize_cn_spaces(str(data.get("text") or data.get("reason") or ""))
 
-    # ✅ 1) text：从 JSON 里取（模型负责“内部备注全文”）
-    text = data.get("text") or data.get("reason") or ""
-    text = _normalize_cn_spaces(str(text))
-
-    # ✅ 2) orders：不要依赖模型，直接从 text_out 抓 SWX（最稳）
     orders = re.findall(r"SWX\s*\d+", text_out, flags=re.I)
     orders = [re.sub(r"\s+", "", o).upper() for o in orders]
-    orders = [re.sub(r"[^A-Za-z0-9]", "", o) for o in orders]  # 去掉可能的标点
+    orders = [re.sub(r"[^A-Za-z0-9]", "", o) for o in orders]
     orders = [o for o in orders if re.fullmatch(r"SWX\d+", o, flags=re.I)]
 
     return {"orders": orders, "text": text, "reason": text}
@@ -178,7 +195,7 @@ async def ocr(file: UploadFile = File(...)):
         image_bytes = _compress_to_jpeg(image_bytes)
 
         mime_type = file.content_type or "image/jpeg"
-        data = await _extract_with_gemini(image_bytes, mime_type)
+        data = await _extract_with_groq(image_bytes, mime_type)
 
         return {
             "ok": True,
