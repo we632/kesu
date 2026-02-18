@@ -23,8 +23,11 @@ print("EXISTS =", FRONTEND_DIR.exists())
 
 # Groq API key：推荐在环境变量里设置 GROQ_API_KEY
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+# 可通过环境变量覆盖模型，避免模型下线导致服务不可用
+GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+OCR_PROVIDER = os.getenv("OCR_PROVIDER", "groq").strip().lower()
 
-app = FastAPI(title="Complaint Template OCR API (Groq)")
+app = FastAPI(title="Complaint Template OCR API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -91,7 +94,7 @@ def _compress_to_jpeg(image_bytes: bytes, max_side: int = 1280, quality: int = 7
         return image_bytes
 
 
-async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
+async def _extract_with_provider(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
     """用 Groq Vision 提取 orders + reason，返回 dict。"""
     if not GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY not set")
@@ -115,21 +118,38 @@ async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, An
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     data_url = f"data:{mime_type};base64,{b64}"
 
-    resp = client.chat.completions.create(
-        model="llama-3.2-11b-vision-preview",
-        temperature=0,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": data_url}},
-                ],
-            }
-        ],
-    )
+    fallback_models = [
+        GROQ_VISION_MODEL,
+        "meta-llama/llama-4-maverick-17b-128e-instruct",
+    ]
 
-    text_out = (resp.choices[0].message.content or "").strip()
+    last_error = None
+    text_out = ""
+    for model_name in _dedupe_keep_order(fallback_models):
+        try:
+            resp = client.chat.completions.create(
+                model=model_name,
+                temperature=0,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": data_url}},
+                        ],
+                    }
+                ],
+            )
+            text_out = (resp.choices[0].message.content or "").strip()
+            if text_out:
+                break
+        except Exception as e:
+            last_error = e
+
+    if not text_out:
+        if last_error:
+            raise RuntimeError(f"Groq request failed: {last_error}") from last_error
+        raise RuntimeError("Groq request failed: empty response")
 
     m = re.search(r"\{.*\}", text_out, re.S)
     if not m:
@@ -145,6 +165,16 @@ async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, An
 
     return {"orders": orders, "text": text, "reason": text}
 
+
+
+async def _extract_with_gemini(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
+    """兼容旧调用：项目已切到 Groq，这里保留同签名入口以降低分支冲突。"""
+    return await _extract_with_provider(image_bytes, mime_type)
+
+
+async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
+    """兼容新调用：与 provider 实现保持一致。"""
+    return await _extract_with_provider(image_bytes, mime_type)
 
 
 
@@ -176,7 +206,10 @@ async def ocr(file: UploadFile = File(...)):
         image_bytes = _compress_to_jpeg(image_bytes)
 
         mime_type = file.content_type or "image/jpeg"
-        data = await _extract_with_groq(image_bytes, mime_type)
+        if OCR_PROVIDER == "groq":
+            data = await _extract_with_groq(image_bytes, mime_type)
+        else:
+            data = await _extract_with_gemini(image_bytes, mime_type)
 
         return {
             "ok": True,
