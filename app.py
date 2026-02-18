@@ -25,8 +25,9 @@ print("EXISTS =", FRONTEND_DIR.exists())
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 # 可通过环境变量覆盖模型，避免模型下线导致服务不可用
 GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+OCR_PROVIDER = os.getenv("OCR_PROVIDER", "groq").strip().lower()
 
-app = FastAPI(title="Complaint Template OCR API (Groq)")
+app = FastAPI(title="Complaint Template OCR API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -166,6 +167,11 @@ async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, An
 
 
 
+async def _extract_with_gemini(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
+    """兼容旧调用：项目已切到 Groq，这里保留同签名入口以降低分支冲突。"""
+    return await _extract_with_groq(image_bytes, mime_type)
+
+
 
 def _extract_address_fallback(text: str) -> str:
     """
@@ -195,7 +201,10 @@ async def ocr(file: UploadFile = File(...)):
         image_bytes = _compress_to_jpeg(image_bytes)
 
         mime_type = file.content_type or "image/jpeg"
-        data = await _extract_with_groq(image_bytes, mime_type)
+        if OCR_PROVIDER == "gemini":
+            data = await _extract_with_gemini(image_bytes, mime_type)
+        else:
+            data = await _extract_with_groq(image_bytes, mime_type)
 
         return {
             "ok": True,
