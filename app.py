@@ -94,7 +94,7 @@ def _compress_to_jpeg(image_bytes: bytes, max_side: int = 1280, quality: int = 7
         return image_bytes
 
 
-async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
+async def _extract_with_provider(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
     """用 Groq Vision 提取 orders + reason，返回 dict。"""
     if not GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY not set")
@@ -169,7 +169,12 @@ async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, An
 
 async def _extract_with_gemini(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
     """兼容旧调用：项目已切到 Groq，这里保留同签名入口以降低分支冲突。"""
-    return await _extract_with_groq(image_bytes, mime_type)
+    return await _extract_with_provider(image_bytes, mime_type)
+
+
+async def _extract_with_groq(image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
+    """兼容新调用：与 provider 实现保持一致。"""
+    return await _extract_with_provider(image_bytes, mime_type)
 
 
 
@@ -201,10 +206,7 @@ async def ocr(file: UploadFile = File(...)):
         image_bytes = _compress_to_jpeg(image_bytes)
 
         mime_type = file.content_type or "image/jpeg"
-        if OCR_PROVIDER == "gemini":
-            data = await _extract_with_gemini(image_bytes, mime_type)
-        else:
-            data = await _extract_with_groq(image_bytes, mime_type)
+        data = await _extract_with_gemini(image_bytes, mime_type)
 
         return {
             "ok": True,
