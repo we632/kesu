@@ -206,7 +206,10 @@ async def ocr(file: UploadFile = File(...)):
         image_bytes = _compress_to_jpeg(image_bytes)
 
         mime_type = file.content_type or "image/jpeg"
-        data = await _extract_with_gemini(image_bytes, mime_type)
+        if OCR_PROVIDER == "groq":
+            data = await _extract_with_groq(image_bytes, mime_type)
+        else:
+            data = await _extract_with_gemini(image_bytes, mime_type)
 
         return {
             "ok": True,
