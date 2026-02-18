@@ -1012,7 +1012,7 @@ window.addEventListener('resize', () => {
 
     const itemsHtml = items.map((x) => {
       const imgsHtml = x.images.length
-        ? `<div class="outImgs">${x.images.map(src => `<img src="${src}" alt="" data-inline-image="1">`).join("")}</div>`
+        ? `<div class="outImgs">${x.images.map(src => `<img src="${src}" alt="img">`).join("")}</div>`
         : "";
 
       return `
@@ -1218,47 +1218,20 @@ async function mergeImagesToPNGBlob(srcList){
   return await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }
 
-function buildPlainOutputText(){
-  const blocks = Array.from(outputEl.querySelectorAll('.outBlock'));
-  return blocks.map((block) => {
-    const lines = [];
-    const head = block.querySelector('.outHead')?.innerText?.trim();
-    if (head) lines.push(head);
-
-    const items = Array.from(block.querySelectorAll('.outItem'));
-    for (const item of items) {
-      const tracking = item.querySelector('.outTracking')?.innerText?.trim() || '';
-      const reason = item.querySelector('.outReason')?.innerText?.trim() || '';
-      const hasImg = !!item.querySelector('img');
-      const row = `${tracking}${reason ? `===${reason}` : ''}${hasImg ? '（附图）' : ''}`.trim();
-      if (row) lines.push(row);
-    }
-    return lines.join('\n');
-  }).filter(Boolean).join('\n\n');
-}
-
-function fallbackCopyBySelection(){
-  const sel = window.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(outputEl);
-  sel.removeAllRanges();
-  sel.addRange(range);
-  const ok = document.execCommand('copy');
-  sel.removeAllRanges();
-  return ok;
-}
-
 btnCopy.addEventListener('click', async () => {
-  const plain = buildPlainOutputText().trim();
+  const plain = (outputEl.innerText || "").trim();
   const html = `<div>${outputEl.innerHTML}</div>`.trim();
 
+  // 取出输出区里的所有图片（也就是你要粘贴到 Lark 的图）
   const imgSrcs = Array.from(outputEl.querySelectorAll("img"))
     .map(img => img.src)
     .filter(Boolean);
 
   try {
+    // ✅ 如果有图片：额外写入 image/png（Lark 会显示图片，不会再变成 “img”）
     if (imgSrcs.length > 0) {
       const pngBlob = await mergeImagesToPNGBlob(imgSrcs);
+
       await navigator.clipboard.write([
         new ClipboardItem({
           "image/png": pngBlob,
@@ -1266,10 +1239,12 @@ btnCopy.addEventListener('click', async () => {
           "text/plain": new Blob([plain], { type: "text/plain" }),
         })
       ]);
-      toast("已复制（含截图）");
+
+      toast("已复制（Lark 适配：图片会显示）");
       return;
     }
 
+    // ✅ 没图片：维持原逻辑
     await navigator.clipboard.write([
       new ClipboardItem({
         "text/html": new Blob([html], { type: "text/html" }),
@@ -1278,19 +1253,12 @@ btnCopy.addEventListener('click', async () => {
     ]);
     toast("已复制");
   } catch (e) {
+    // 兜底
     try {
-      if (fallbackCopyBySelection()) {
-        toast("已复制（兼容模式，含截图）");
-        return;
-      }
-      throw new Error('selection copy failed');
+      await navigator.clipboard.writeText(plain);
+      toast("已复制（纯文本兼容模式）");
     } catch {
-      try {
-        await navigator.clipboard.writeText(plain);
-        toast("已复制（纯文本兼容模式）");
-      } catch {
-        toast("复制失败：请用 Chrome 并允许剪贴板权限");
-      }
+      toast("复制失败：请用 Chrome 并允许剪贴板权限");
     }
   }
 });
