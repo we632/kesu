@@ -13,5 +13,5 @@ jobs:
     steps:
       - name: Send a request to the website
         run: |
-          curl -sL https://你的网址.com > /dev/null
+          curl -sL https://kesu-1.onrender.com/
           echo "Website pinged at $(date)"
