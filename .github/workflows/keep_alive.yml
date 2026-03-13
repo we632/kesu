@@ -1,0 +1,17 @@
+name: Keep Website Alive
+
+# 触发条件
+on:
+  schedule:
+    # 定时任务：每 10 分钟运行一次 (Cron 表达式)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # 允许你手动点击按钮运行
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send a request to the website
+        run: |
+          curl -I https://你的网站链接.com
+          echo "Website pinged at $(date)"
