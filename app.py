@@ -1,8 +1,10 @@
 
 
+import asyncio
 import os
 import re
 from typing import List, Dict, Any
+from contextlib import suppress
 
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +28,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 # 可通过环境变量覆盖模型，避免模型下线导致服务不可用
 GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
 OCR_PROVIDER = os.getenv("OCR_PROVIDER", "groq").strip().lower()
+KEEPALIVE_ENABLED = os.getenv("KEEPALIVE_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+KEEPALIVE_URL = os.getenv("KEEPALIVE_URL", "").strip()
+KEEPALIVE_INTERVAL_SEC = max(int(os.getenv("KEEPALIVE_INTERVAL_SEC", "600")), 600)
+
+_keepalive_task: asyncio.Task | None = None
 
 app = FastAPI(title="Complaint Template OCR API")
 
@@ -39,6 +46,46 @@ app.add_middleware(
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
+
+async def _keepalive_loop() -> None:
+    """后台定时自 ping，尽量降低平台空闲休眠概率。"""
+    if not KEEPALIVE_URL:
+        print("[keepalive] disabled: KEEPALIVE_URL is empty")
+        return
+
+    import httpx
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        print(f"[keepalive] started: {KEEPALIVE_URL}, interval={KEEPALIVE_INTERVAL_SEC}s")
+        while True:
+            try:
+                resp = await client.get(KEEPALIVE_URL)
+                print(f"[keepalive] ping {KEEPALIVE_URL} -> {resp.status_code}")
+            except Exception as exc:
+                print(f"[keepalive] ping failed: {exc}")
+            await asyncio.sleep(KEEPALIVE_INTERVAL_SEC)
+
+
+@app.on_event("startup")
+async def _start_keepalive() -> None:
+    global _keepalive_task
+    if not KEEPALIVE_ENABLED:
+        print("[keepalive] disabled by KEEPALIVE_ENABLED")
+        return
+    if _keepalive_task is None or _keepalive_task.done():
+        _keepalive_task = asyncio.create_task(_keepalive_loop())
+
+
+@app.on_event("shutdown")
+async def _stop_keepalive() -> None:
+    global _keepalive_task
+    if _keepalive_task is None:
+        return
+    _keepalive_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await _keepalive_task
+    _keepalive_task = None
 
 @app.get("/")
 def home():
