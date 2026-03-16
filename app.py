@@ -96,7 +96,9 @@ def home():
         {"ok": False, "error": f"frontend not found. FRONTEND_DIR={FRONTEND_DIR}"},
         status_code=404,
     )
-
+@app.get("/ping")
+def ping():
+    return {"ok": True}
 
 
 def _normalize_cn_spaces(s: str) -> str:
